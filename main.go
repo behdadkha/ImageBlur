@@ -56,9 +56,9 @@ func main() {
 	b := img.Bounds()
 
 	imgRGBA := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
-	imgRGBA1 := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	//imgRGBA1 := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 
-	radius := 5
+	radius := 10
 
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
@@ -70,12 +70,9 @@ func main() {
 	}
 
 	runtime.GOMAXPROCS(100)
-	wg.Add(height * width)
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			go imgRGBA1.Set(x, y, findAverage(imgRGBA, radius, x, y))
-		}
-	}
+	wg.Add(2)
+	go setPixel(imgRGBA, 0, 0, width, height/2, radius)
+	go setPixel(imgRGBA, 0, height/2, width, height, radius)
 	wg.Wait()
 
 	outputImage, errI := os.Create("src/imageBlur/output.png")
@@ -87,7 +84,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	err = png.Encode(outputImage, imgRGBA1)
+	err = png.Encode(outputImage, imgRGBA)
 
 	if err != nil {
 		fmt.Println(err)
@@ -136,6 +133,15 @@ func findAverage(img *image.RGBA, radius, x, y int) color.RGBA {
 
 	newV := color.RGBA{uint8(r / sum), uint8(g / sum), uint8(b / sum), 255}
 	sum = 0
-	wg.Done()
+
 	return newV
+}
+
+func setPixel(img *image.RGBA, minX, minY, width, height, radius int) {
+	for y := minY; y < height; y++ {
+		for x := minX; x < width; x++ {
+			img.Set(x, y, findAverage(img, radius, x, y))
+		}
+	}
+	wg.Done()
 }
