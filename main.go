@@ -30,6 +30,9 @@ func main() {
 	var imageName string = os.Args[1]
 	numberOfGo, err := strconv.Atoi(os.Args[2])
 
+	//gaussian algorithm radius
+	radius := 15
+
 	if err != nil {
 		fmt.Println("wrong input")
 		os.Exit(2)
@@ -45,8 +48,6 @@ func main() {
 	defer imgfile.Close()
 
 	// get image height and width with image/jpeg
-	// change accordinly if file is png or gif
-
 	imgCfg, _, err := image.DecodeConfig(imgfile)
 
 	if err != nil {
@@ -69,8 +70,6 @@ func main() {
 
 	imgRGBA := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 
-	radius := 20
-
 	//creates a copy of the original image in RGBA type
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
@@ -82,7 +81,7 @@ func main() {
 	}
 
 	//Max number of threads
-	runtime.GOMAXPROCS(numberOfGo)
+	runtime.GOMAXPROCS(numberOfGo + 1)
 
 	//number of go routines
 	goNumber := numberOfGo
@@ -100,7 +99,7 @@ func main() {
 	//wait for all the threads to finish
 	wg.Wait()
 
-	outputImage, errI := os.Create("src/imageBlur/output.png")
+	outputImage, errI := os.Create("./output.png")
 
 	defer outputImage.Close()
 
@@ -116,7 +115,7 @@ func main() {
 	}
 
 	//elapsed time
-	fmt.Println(time.Since(start))
+	fmt.Printf("elapsed time:%v\n", time.Since(start))
 
 }
 
