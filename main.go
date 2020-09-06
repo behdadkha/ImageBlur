@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"time"
 )
 
 func init() {
@@ -23,6 +24,9 @@ var height int
 var wg sync.WaitGroup
 
 func main() {
+
+	start := time.Now()
+
 	imgfile, err := os.Open("src/imageBlur/gray-wolf_thumb.jpg")
 
 	if err != nil {
@@ -58,7 +62,7 @@ func main() {
 	imgRGBA := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 	//imgRGBA1 := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 
-	radius := 10
+	radius := 20
 
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
@@ -69,10 +73,20 @@ func main() {
 		}
 	}
 
-	runtime.GOMAXPROCS(100)
-	wg.Add(2)
-	go setPixel(imgRGBA, 0, 0, width, height/2, radius)
-	go setPixel(imgRGBA, 0, height/2, width, height, radius)
+	runtime.GOMAXPROCS(20)
+
+	goNumber := 20
+
+	j := -(height / goNumber)
+	for i := 0; (height/goNumber)+i < height; i += (height / goNumber) {
+		wg.Add(1)
+		go setPixel(imgRGBA, 0, (height/goNumber)+j, width, (height/goNumber)+i, radius)
+		fmt.Printf("from: %d, to: %d\n", (height/goNumber)+j, (height/goNumber)+i)
+		j += (height / goNumber)
+
+	}
+	//go setPixel(imgRGBA, 0, 0, width, height/2, radius)
+	//go setPixel(imgRGBA, 0, height/2, width, height, radius)
 	wg.Wait()
 
 	outputImage, errI := os.Create("src/imageBlur/output.png")
@@ -90,6 +104,8 @@ func main() {
 		fmt.Println(err)
 	}
 
+	fmt.Println(time.Since(start))
+
 }
 
 func findAverage(img *image.RGBA, radius, x, y int) color.RGBA {
@@ -99,7 +115,7 @@ func findAverage(img *image.RGBA, radius, x, y int) color.RGBA {
 
 	//var a uint32
 
-	var sum int
+	var sum int = 1
 
 	var minX = x - radius
 	var maxX = x + radius
