@@ -8,26 +8,34 @@ import (
 	"image/png"
 	"os"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
 )
-
-func init() {
-	// damn important or else At(), Bounds() functions will
-	// caused memory pointer error!!
-	image.RegisterFormat("jpeg", "jpeg", jpeg.Decode, jpeg.DecodeConfig)
-}
 
 var width int
 var height int
 
 var wg sync.WaitGroup
 
+func init() {
+	image.RegisterFormat("jpeg", "jpeg", jpeg.Decode, jpeg.DecodeConfig)
+}
+
 func main() {
 
 	start := time.Now()
 
-	imgfile, err := os.Open("src/imageBlur/gray-wolf_thumb.jpg")
+	//command line args
+	var imageName string = os.Args[1]
+	numberOfGo, err := strconv.Atoi(os.Args[2])
+
+	if err != nil {
+		fmt.Println("wrong input")
+		os.Exit(2)
+	}
+
+	imgfile, err := os.Open(imageName)
 
 	if err != nil {
 		fmt.Println("img.jpg file not found!")
@@ -60,10 +68,10 @@ func main() {
 	b := img.Bounds()
 
 	imgRGBA := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
-	//imgRGBA1 := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 
 	radius := 20
 
+	//creates a copy of the original image in RGBA type
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 
@@ -73,10 +81,13 @@ func main() {
 		}
 	}
 
-	runtime.GOMAXPROCS(20)
+	//Max number of threads
+	runtime.GOMAXPROCS(numberOfGo)
 
-	goNumber := 20
+	//number of go routines
+	goNumber := numberOfGo
 
+	//devides the image into pieces and assigns them the threads, each thread calculates a new RGBA for a piece.
 	j := -(height / goNumber)
 	for i := 0; (height/goNumber)+i < height; i += (height / goNumber) {
 		wg.Add(1)
@@ -85,8 +96,8 @@ func main() {
 		j += (height / goNumber)
 
 	}
-	//go setPixel(imgRGBA, 0, 0, width, height/2, radius)
-	//go setPixel(imgRGBA, 0, height/2, width, height, radius)
+
+	//wait for all the threads to finish
 	wg.Wait()
 
 	outputImage, errI := os.Create("src/imageBlur/output.png")
@@ -104,6 +115,7 @@ func main() {
 		fmt.Println(err)
 	}
 
+	//elapsed time
 	fmt.Println(time.Since(start))
 
 }
@@ -112,8 +124,6 @@ func findAverage(img *image.RGBA, radius, x, y int) color.RGBA {
 	var r int
 	var g int
 	var b int
-
-	//var a uint32
 
 	var sum int = 1
 
